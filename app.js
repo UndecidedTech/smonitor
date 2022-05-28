@@ -105,6 +105,7 @@ let serverStatusFlag = {
 };
 
 setInterval(() => {
+  console.log(statusObj);
   if (serverStatusFlag.isUp) {
     checkStatus();
   } else {
