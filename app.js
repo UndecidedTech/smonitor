@@ -4,7 +4,12 @@ const { exec } = require("child_process");
 const nodemailer = require("nodemailer")
 const axios = require("axios");
 
-const statusObj = {};
+const statusObj = {
+  hv: {},
+  wsg: {},
+  g: {},
+  tv: {}
+};
 
 const smtpTransport = nodemailer.createTransport({
   service: "Gmail",
