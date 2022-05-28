@@ -1,0 +1,25 @@
+{
+  "name": "smonitor",
+  "version": "1.0.0",
+  "description": "Wanted to make a little webapp to check whether our servers are up or down on RasPi",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/UndecidedTech/smonitor.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/UndecidedTech/smonitor/issues"
+  },
+  "homepage": "https://github.com/UndecidedTech/smonitor#readme",
+  "dependencies": {
+    "child_process": "^1.0.2",
+    "dotenv": "^16.0.1",
+    "express": "^4.18.1",
+    "nodemailer": "^6.7.5"
+  }
+}
