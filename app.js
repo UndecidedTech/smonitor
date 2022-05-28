@@ -43,7 +43,8 @@ const curlServer = async (serverIp, port) => {
 // check server status func
 const checkStatus = () => {
   // Baremetal Hypervisor
-  statusObj["4chan"].hv = pingServer(process.env.HYPERVISOR);
+  const hvStatus = pingServer(process.env.HYPERVISOR);
+  statusObj.hv.status = pingServer(process.env.HYPERVISOR);
 
   // services
 
@@ -72,7 +73,7 @@ const checkStatus = () => {
   statusObj.tv.status = pingServer(process.env.TV);
   statusObj.tv.plex = curlServer(process.env.TV);
 
-  let cStatus = [delugeService, delugeStatus, radarrService, radarrStatus, prowlarrService, plexStatus, plexService];
+  let cStatus = [hvStatus, delugeStatus, radarrService, radarrStatus, prowlarrService, plexStatus, plexService];
 
   // check every and if they all == "Is Up"
   // reset the 
