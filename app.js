@@ -1,8 +1,11 @@
 require("dotenv").config();
 const express = require("express");
-const { exec } = require("child_process");
+const util = require("util");
 const nodemailer = require("nodemailer")
 const axios = require("axios");
+
+const exec = util.promisify(require('child_process').exec);
+
 
 const statusObj = {
   hv: {},
@@ -19,67 +22,71 @@ const smtpTransport = nodemailer.createTransport({
   }
 });
 
-const pingServer = (serverIp) => {
-  exec(`ping -c 1 ${serverIp}`, (error, stdout, stderr) => {
-    if (error) {
-      console.error(error);
-      serverStatusFlag.isUp = false;
-    }
+const pingServer = async (serverIp) => {
+  try {
+    const { stdout, stderr } = await exec(`ping -c 1 ${serverIp}`);
+
     if (stderr) {
       serverStatusFlag.isUp = false;
-      console.error(stderr);
+      return "Is Down"
     }
 
-    console.log("Ping Result: ", stdout);
-    return "Is Up"
-  })
+    return "Is Up";
+
+  } catch (err) {
+    serverStatusFlag.isUp = false;
+    return "Is Down"
+  }
 }
 
 const curlServer = async (serverIp, port) => {
-  let res = await axios.get(port ? `http://${serverIp}:${port}` : `http://${serverIp}`);
-  if (res.status === 200) {
-    return "Is Up"
-  } else {
+  try {
+    let res = await axios.get(port ? `http://${serverIp}:${port}` : `http://${serverIp}`);
+    if (res.status === 200)
+      return "Is Up"
+    else
+      return "Is Down"
+  } catch (error) {
     serverStatusFlag.isUp = false;
     return "Is Down"
   }
 }
 
 // check server status func
-const checkStatus = () => {
+const checkStatus = async () => {
   // Baremetal Hypervisor
-  const hvStatus = pingServer(process.env.HYPERVISOR);
-  statusObj.hv.status = pingServer(process.env.HYPERVISOR);
+  const hvStatus = await pingServer(process.env.HYPERVISOR);
+  statusObj.hv.status = await pingServer(process.env.HYPERVISOR);
 
   // services
 
   // Deluge
-  const delugeService = curlServer(process.env.WSG, 8112);
-  const delugeStatus = pingServer(process.env.WSG);
+  const delugeService = await curlServer(process.env.WSG, 8112);
+  const delugeStatus = await pingServer(process.env.WSG);
 
-  statusObj.wsg.deluge = curlServer(process.env.WSG, 8112);
-  statusObj.wsg.status = pingServer(process.env.WSG);
+  statusObj.wsg.deluge = await curlServer(process.env.WSG, 8112);
+  statusObj.wsg.status = await pingServer(process.env.WSG);
 
   // radarr
-  const radarrService = curlServer(process.env.G, 7879);
-  const radarrStatus = pingServer(process.env.G);
+  const radarrService = await curlServer(process.env.G, 7879);
+  const radarrStatus = await pingServer(process.env.G);
 
-  statusObj.g.radarr = curlServer(process.env.G, 7878);
-  statusObj.g.status = pingServer(process.env.G);
+  statusObj.g.radarr = await curlServer(process.env.G, 7878);
+  statusObj.g.status = await pingServer(process.env.G);
 
   //prowlarr
-  const prowlarrService = curlServer(process.env.G, 9696);
-  statusObj.g.prowlarr = curlServer(process.env.G, 9696);
+  const prowlarrService = await curlServer(process.env.G, 9696);
+  statusObj.g.prowlarr = await curlServer(process.env.G, 9696);
 
   // Plex
-  const plexStatus = pingServer(process.env.TV);
-  const plexService = curlServer(process.env.TV);
+  const plexStatus = await pingServer(process.env.TV);
+  const plexService = await curlServer(process.env.TV);
 
-  statusObj.tv.status = pingServer(process.env.TV);
-  statusObj.tv.plex = curlServer(process.env.TV);
+  statusObj.tv.status = await pingServer(process.env.TV);
+  statusObj.tv.plex = await curlServer(process.env.TV);
 
-  let cStatus = [hvStatus, delugeStatus, radarrService, radarrStatus, prowlarrService, plexStatus, plexService];
-
+  let cStatus = [hvStatus, delugeService, delugeStatus, radarrService, radarrStatus, prowlarrService, plexStatus, plexService];
+  console.log(cStatus);
   // check every and if they all == "Is Up"
   // reset the 
 
@@ -90,6 +97,8 @@ const checkStatus = () => {
       return false;
     }
   })
+
+
 
   if (everyCheck) {
     serverStatusFlag.emailSent = false;
@@ -106,14 +115,27 @@ let serverStatusFlag = {
 
 setInterval(() => {
   console.log(statusObj);
-  if (serverStatusFlag.isUp) {
+  if (serverStatusFlag.isUp === true) {
     checkStatus();
   } else {
     if (!serverStatusFlag.emailSent) {
       // send email here
-      emailSent();
+      // emailSent();
       serverStatusFlag.emailSent = true;
     }
   }
 }, 10000);
+
+
+const app = express();
+
+app.set("view engine", "ejs");
+
+app.get("/", (req, res) => {
+  res.render("index", {
+    statusObj
+  });
+});
+
+app.listen(8080, () => console.log("express app is running"));
 
